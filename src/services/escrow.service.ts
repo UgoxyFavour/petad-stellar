@@ -19,6 +19,9 @@ export interface AccountValidationResult {
 export interface EscrowReleaseParams {
 	escrowPublicKey: string;
 	encryptedSecret: string;
+	encryptionKey: string;
+	custodianPublicKey: string;
+	amount?: string;
 	encryptionKey?: string | undefined;
 	custodianPublicKey?: string | undefined;
 	amount?: string | undefined;
@@ -33,6 +36,7 @@ export interface EscrowReleaseResult {
 export interface EscrowRefundParams {
 	escrowPublicKey: string;
 	encryptedSecret: string;
+	encryptionKey: string;
 	encryptionKey?: string | undefined;
 	ownerPublicKey: string;
 	amount?: string | undefined;

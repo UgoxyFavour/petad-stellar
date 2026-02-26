@@ -138,6 +138,8 @@ async function testEscrowRelease() {
 		console.log("📝 Test 1: Releasing escrow funds to custodian...");
 		const custodianKey = config.getCustodianPublicKey();
 		if (!custodianKey) {
+			throw new Error('CUSTODIAN_PUBLIC_KEY is required');
+		}
 			throw new Error("Custodian public key not configured");
 		}
 		

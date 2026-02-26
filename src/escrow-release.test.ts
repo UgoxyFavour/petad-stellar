@@ -1,3 +1,4 @@
+import { testEscrowRelease } from "./escrow.test.js";
 import { EscrowService } from "./services/escrow.service.js";
 import { Config } from "./config.js";
 
