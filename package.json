@@ -1,29 +1,35 @@
 {
-  "name": "petad-chain",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "test": "node dist/src/escrow.test.js",
-    "test-escrow": "ENCRYPTION_KEY=test-key-123 node dist/src/escrow.test.js",
-    "test-funding": "node dist/src/funding.test.js",
-    "demo-funding": "node dist/src/funding-demo.js",
-    "create-escrow": "node dist/src/cli/create-escrow.js",
-    "build-funding": "node dist/src/cli/build-funding.js",
-    "dev": "npm run build && npm run create-escrow"
-  },
-  "keywords": ["stellar", "blockchain", "sdk"],
-  "author": "",
-  "license": "ISC",
-  "description": "Stellar SDK infrastructure for PetAd chain",
-  "dependencies": {
-    "@stellar/stellar-sdk": "^14.5.0",
-    "dotenv": "^17.3.1"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
-  }
+	"name": "petad-chain",
+	"version": "1.0.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"test": "node dist/src/escrow.test.js",
+		"test-escrow": "ENCRYPTION_KEY=test-key-123 node dist/src/escrow.test.js",
+		"test-release": "ENCRYPTION_KEY=test-release-key-456 CUSTODIAN_PUBLIC_KEY=GBQGEXZF36EQBJZ72QC5JEGUHBRI22CGUWEP7OVZA44OAJFFKKIRVDOE node dist/src/escrow-release.test.js",
+		"test-funding": "node dist/src/funding.test.js",
+		"demo-funding": "node dist/src/funding-demo.js",
+		"create-escrow": "node dist/src/cli/create-escrow.js",
+		"build-funding": "node dist/src/cli/build-funding.js",
+		"release-escrow": "node dist/src/cli/release-escrow.js",
+		"dev": "npm run build && npm run create-escrow"
+	},
+	"keywords": [
+		"stellar",
+		"blockchain",
+		"sdk"
+	],
+	"author": "",
+	"license": "ISC",
+	"description": "Stellar SDK infrastructure for PetAd chain",
+	"dependencies": {
+		"@stellar/stellar-sdk": "^14.5.0",
+		"dotenv": "^17.3.1"
+	},
+	"devDependencies": {
+		"typescript": "^5.0.0",
+		"@types/node": "^20.0.0"
+	}
 }
