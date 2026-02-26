@@ -18,8 +18,8 @@ export interface AccountValidationResult {
 export interface EscrowReleaseParams {
 	escrowPublicKey: string;
 	encryptedSecret: string;
-	encryptionKey?: string;
-	custodianPublicKey?: string;
+	encryptionKey: string;
+	custodianPublicKey: string;
 	amount?: string;
 }
 
@@ -32,7 +32,7 @@ export interface EscrowReleaseResult {
 export interface EscrowRefundParams {
 	escrowPublicKey: string;
 	encryptedSecret: string;
-	encryptionKey?: string;
+	encryptionKey: string;
 	ownerPublicKey: string;
 	amount?: string;
 }

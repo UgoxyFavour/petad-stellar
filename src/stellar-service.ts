@@ -91,21 +91,38 @@ export class StellarService {
     }
   }
 
-  public async anchorTrustHash(hash: string): Promise<TrustHashResult> {
-    try {
-      const transaction = await this.getTransactionStatus(hash);
-      
-      return {
-        hash: hash,
-        verified: transaction.successful,
-        timestamp: new Date(),
-      };
-    } catch (error) {
-      return {
-        hash: hash,
-        verified: false,
-      };
+  public async anchorTrustHash(hash: string, sourceSecret: string): Promise<TrustHashResult> {
+    if (hash.length > 28) {
+      throw new Error('Hash exceeds 28 bytes limit for memo text');
     }
+
+    const sourceKeypair = StellarSdk.Keypair.fromSecret(sourceSecret);
+    const sourceAccount = await this.server.loadAccount(sourceKeypair.publicKey());
+    
+    const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: this.config.getNetworkPassphrase(),
+    })
+      .addOperation(
+        StellarSdk.Operation.payment({
+          destination: sourceKeypair.publicKey(),
+          asset: StellarSdk.Asset.native(),
+          amount: '0.00001',
+        })
+      )
+      .addMemo(StellarSdk.Memo.text(hash))
+      .setTimeout(30)
+      .build();
+
+    transaction.sign(sourceKeypair);
+    
+    const result = await this.server.submitTransaction(transaction);
+    
+    return {
+      hash: result.hash,
+      verified: result.successful,
+      timestamp: new Date(),
+    };
   }
 
   public async buildPaymentTransaction(

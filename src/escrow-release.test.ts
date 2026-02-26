@@ -1,4 +1,4 @@
-import { EscrowService, testEscrowRelease } from "./escrow.test.js";
+import { testEscrowRelease } from "./escrow.test.js";
 import { Config } from "./config.js";
 
 // Run the release test if this file is executed directly

@@ -16,8 +16,8 @@ async function releaseEscrowFunds(options: ReleaseEscrowOptions) {
 	const {
 		escrowPublicKey,
 		encryptedSecret,
-		encryptionKey = process.env.ENCRYPTION_KEY,
-		custodianPublicKey = process.env.CUSTODIAN_PUBLIC_KEY,
+		encryptionKey = process.env.ENCRYPTION_KEY || '',
+		custodianPublicKey = process.env.CUSTODIAN_PUBLIC_KEY || '',
 		amount,
 		testnet = true,
 	} = options;
@@ -25,6 +25,13 @@ async function releaseEscrowFunds(options: ReleaseEscrowOptions) {
 	console.log("🔓 Releasing Escrow Funds\n");
 
 	try {
+		if (!encryptionKey) {
+			throw new Error('ENCRYPTION_KEY is required');
+		}
+		if (!custodianPublicKey) {
+			throw new Error('CUSTODIAN_PUBLIC_KEY is required');
+		}
+
 		// Configure for testnet or mainnet
 		const config = Config.getInstance({
 			horizonUrl: testnet
@@ -51,13 +58,17 @@ async function releaseEscrowFunds(options: ReleaseEscrowOptions) {
 		console.log("⏳ Releasing escrow funds...");
 		const startTime = Date.now();
 
-		const result = await escrowService.releaseEscrowFunds({
+		const releaseParams: any = {
 			escrowPublicKey,
 			encryptedSecret,
 			encryptionKey,
 			custodianPublicKey,
-			amount,
-		});
+		};
+		if (amount) {
+			releaseParams.amount = amount;
+		}
+
+		const result = await escrowService.releaseEscrowFunds(releaseParams);
 
 		const endTime = Date.now();
 		console.log(`✅ Release completed in ${endTime - startTime}ms\n`);
