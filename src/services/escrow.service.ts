@@ -29,10 +29,26 @@ export interface EscrowReleaseResult {
 	released: boolean;
 }
 
+export interface EscrowRefundParams {
+	escrowPublicKey: string;
+	encryptedSecret: string;
+	encryptionKey?: string;
+	ownerPublicKey: string;
+	amount?: string;
+}
+
+export interface EscrowRefundResult {
+	txHash: string;
+	successful: boolean;
+	refunded: boolean;
+	idempotent?: boolean;
+}
+
 export class EscrowService {
 	private stellarService: StellarService;
 	private config: Config;
 	private releasedTransactions: Set<string> = new Set();
+	private refundedTransactions: Set<string> = new Set();
 
 	constructor(config?: Config) {
 		this.config = config || Config.getInstance();
@@ -325,6 +341,119 @@ export class EscrowService {
 				`Failed to release escrow funds: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
 		}
+	}
+
+	/**
+	 * Refunds funds from escrow account back to the owner.
+	 * Enforces single-refund rule with idempotency check.
+	 * Destination is the owner account; memo is set to 'REFUND'.
+	 */
+	public async refundEscrowFunds(
+		params: EscrowRefundParams,
+	): Promise<EscrowRefundResult> {
+		try {
+			const {
+				escrowPublicKey,
+				encryptedSecret,
+				encryptionKey,
+				ownerPublicKey,
+				amount,
+			} = params;
+
+			// Validate required parameters
+			if (!ownerPublicKey) {
+				throw new Error(
+					"Owner public key is required for refund destination.",
+				);
+			}
+
+			// Decrypt the escrow secret
+			const escrowSecret = this.decryptSecret(encryptedSecret, encryptionKey);
+			const escrowKeypair = StellarSdk.Keypair.fromSecret(escrowSecret);
+
+			// Idempotency check: query live escrow account balance
+			const server = this.stellarService.getServer();
+			const escrowAccount = await server.loadAccount(escrowPublicKey);
+			const xlmBalance =
+				escrowAccount.balances
+					.filter((balance: any) => balance.asset_type === "native")
+					.map((balance: any) => balance.balance)[0] || "0";
+
+			// Minimum reserve required to keep the account open
+			const minimumReserve = "1.0"; // 1 XLM
+			const availableBalance = (
+				parseFloat(xlmBalance) - parseFloat(minimumReserve)
+			).toFixed(7);
+
+			// If the balance is already depleted this is a duplicate refund attempt
+			if (parseFloat(availableBalance) <= 0) {
+				throw new Error(
+					"Idempotency error: escrow account balance is already depleted. Refund has likely already been processed.",
+				);
+			}
+
+			const refundAmount = amount || availableBalance;
+
+			// Build the refund transaction manually so we can attach Memo.text('REFUND')
+			const transaction = new StellarSdk.TransactionBuilder(escrowAccount, {
+				fee: StellarSdk.BASE_FEE,
+				networkPassphrase: this.config.getNetworkPassphrase(),
+			})
+				.addOperation(
+					StellarSdk.Operation.payment({
+						destination: ownerPublicKey,
+						asset: StellarSdk.Asset.native(),
+						amount: refundAmount,
+					}),
+				)
+				.addMemo(StellarSdk.Memo.text("REFUND"))
+				.setTimeout(30)
+				.build();
+
+			// Sign with the escrow account's secret key
+			transaction.sign(escrowKeypair);
+
+			// Generate deterministic transaction hash
+			const txHash = transaction.hash().toString("hex");
+
+			// Idempotency check: ensure this exact refund tx hasn't been submitted before
+			if (this.refundedTransactions.has(txHash)) {
+				return {
+					txHash,
+					successful: true,
+					refunded: false,
+					idempotent: true,
+				};
+			}
+
+			// Submit the refund transaction
+			const result = await this.stellarService.submitTransaction(transaction);
+
+			// Record the refund to prevent duplicates
+			if (result.successful) {
+				this.refundedTransactions.add(txHash);
+			}
+
+			return {
+				txHash: result.hash,
+				successful: result.successful,
+				refunded: result.successful,
+				idempotent: false,
+			};
+		} catch (error) {
+			throw new Error(
+				`Failed to refund escrow funds: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
+			);
+		}
+	}
+
+	/**
+	 * Checks if an escrow account has already been refunded
+	 */
+	public isEscrowRefunded(txHash: string): boolean {
+		return this.refundedTransactions.has(txHash);
 	}
 
 	/**
