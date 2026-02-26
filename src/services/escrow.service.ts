@@ -1,7 +1,7 @@
 import * as StellarSdk from "@stellar/stellar-sdk";
-import * as crypto from "crypto";
 import { Config } from "../config.js";
 import { StellarService } from "../stellar-service.js";
+import { EncryptionUtils } from "../utils/encryption.utils.js";
 import { NetworkGuard } from "../guards/network.guard.js";
 
 export interface EscrowAccountResult {
@@ -19,12 +19,9 @@ export interface AccountValidationResult {
 export interface EscrowReleaseParams {
 	escrowPublicKey: string;
 	encryptedSecret: string;
-	encryptionKey: string;
-	custodianPublicKey: string;
+	encryptionKey?: string;
+	custodianPublicKey?: string;
 	amount?: string;
-	encryptionKey?: string | undefined;
-	custodianPublicKey?: string | undefined;
-	amount?: string | undefined;
 }
 
 export interface EscrowReleaseResult {
@@ -36,10 +33,9 @@ export interface EscrowReleaseResult {
 export interface EscrowRefundParams {
 	escrowPublicKey: string;
 	encryptedSecret: string;
-	encryptionKey: string;
-	encryptionKey?: string | undefined;
+	encryptionKey?: string;
 	ownerPublicKey: string;
-	amount?: string | undefined;
+	amount?: string;
 }
 
 export interface EscrowRefundResult {
@@ -99,30 +95,10 @@ export class EscrowService {
 		const encryptionKey = key || this.config.getMasterSecret();
 		if (!encryptionKey) {
 			throw new Error(
-				"No encryption key provided. Set MASTER_SECRET in environment or pass encryptionKey parameter.",
+				"Encryption key required. Set ENCRYPTION_KEY or MASTER_SECRET environment variable.",
 			);
 		}
-
-		const keyBuffer = crypto
-			.createHash("sha256")
-			.update(encryptionKey)
-			.digest();
-		const iv = crypto.randomBytes(16);
-		const cipher = crypto.createCipheriv("aes-256-gcm", keyBuffer, iv);
-
-		let encrypted = cipher.update(secret, "utf8", "hex");
-		encrypted += cipher.final("hex");
-
-		const authTag = cipher.getAuthTag();
-
-		// Combine iv + authTag + encrypted data
-		const combined = Buffer.concat([
-			iv,
-			authTag,
-			Buffer.from(encrypted, "hex"),
-		]);
-
-		return combined.toString("base64");
+		return EncryptionUtils.encryptSecret(secret, encryptionKey);
 	}
 
 	/**
@@ -132,27 +108,10 @@ export class EscrowService {
 		const encryptionKey = key || this.config.getMasterSecret();
 		if (!encryptionKey) {
 			throw new Error(
-				"No encryption key provided. Set MASTER_SECRET in environment or pass key parameter.",
+				"Encryption key required. Set ENCRYPTION_KEY or MASTER_SECRET environment variable.",
 			);
 		}
-
-		const keyBuffer = crypto
-			.createHash("sha256")
-			.update(encryptionKey)
-			.digest();
-		const combined = Buffer.from(encryptedSecret, "base64");
-
-		const iv = combined.slice(0, 16);
-		const authTag = combined.slice(16, 32);
-		const encrypted = combined.slice(32);
-
-		const decipher = crypto.createDecipheriv("aes-256-gcm", keyBuffer, iv);
-		decipher.setAuthTag(authTag);
-
-		let decrypted = decipher.update(encrypted.toString("hex"), "hex", "utf8");
-		decrypted += decipher.final("utf8");
-
-		return decrypted;
+		return EncryptionUtils.decryptSecret(encryptedSecret, encryptionKey);
 	}
 
 	/**
@@ -474,6 +433,20 @@ export class EscrowService {
 	 * Generates a deterministic encryption key from a seed
 	 */
 	public static generateEncryptionKey(seed: string): string {
-		return crypto.createHash("sha256").update(seed).digest("hex");
+		return EncryptionUtils.generateEncryptionKey(seed);
+	}
+
+	/**
+	 * Validates encrypted secret format
+	 */
+	public static isValidEncryptedSecret(encryptedSecret: string): boolean {
+		return EncryptionUtils.isValidEncryptedFormat(encryptedSecret);
+	}
+
+	/**
+	 * Sanitizes encrypted secret for logging
+	 */
+	public static sanitizeForLogging(encryptedSecret: string, maxLength: number = 20): string {
+		return EncryptionUtils.sanitizeForLogging(encryptedSecret, maxLength);
 	}
 }
