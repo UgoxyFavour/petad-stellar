@@ -17,6 +17,9 @@
 		"build-funding": "node dist/src/cli/build-funding.js",
 		"release-escrow": "node dist/src/cli/release-escrow.js",
 		"anchor-trust-hash": "node dist/src/cli/anchor-trust-hash.js",
+		"check-status": "node dist/src/cli/check-transaction-status.js",
+		"test-tx-status": "node dist/src/transaction-status.test.js",
+		"demo-tx-status": "node dist/src/transaction-status-demo.js",
 		"dev": "npm run build && npm run create-escrow"
 	},
 	"keywords": [
