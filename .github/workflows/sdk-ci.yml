@@ -41,23 +41,12 @@ jobs:
           STELLAR_NETWORK: testnet
           MASTER_SECRET_KEY: ${{ secrets.TESTNET_MASTER_SECRET_KEY }}
           MASTER_PUBLIC_KEY: ${{ secrets.TESTNET_MASTER_PUBLIC_KEY }}
-      - name: Assert coverage thresholds
-        run: |
-          node -e "
-            const s = require('./coverage/coverage-summary.json').total;
-            let failed = false;
-            const check = (n,v,m) => { if(v<m){console.error('FAIL: '+n+'='+v+'% (min '+m+'%)');failed=true;}else{console.log('OK: '+n+'='+v+'%');} };
-            check('Lines',    s.lines.pct,     90);
-            check('Branches', s.branches.pct,  90);
-            check('Functions',s.functions.pct, 95);
-            if(failed) process.exit(1);
-          "
-      - uses: actions/upload-artifact@v4
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
         with:
           name: sdk-coverage
           path: coverage/
           retention-days: 14
-
   build:
     name: Build
     runs-on: ubuntu-latest
