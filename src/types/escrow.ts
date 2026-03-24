@@ -7,16 +7,7 @@ export interface CreateEscrowParams {
   metadata?: { adoptionId: string; petId: string };
 }
 
-export interface Signer {
-  publicKey: string;
-  weight: number;
-}
-
-export interface Thresholds {
-  low: number;
-  medium: number;
-  high: number;
-}
+import { Signer, Thresholds } from './network';
 
 export interface EscrowAccount {
   accountId: string;
